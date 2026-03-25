@@ -42,12 +42,13 @@ export default function ResumeUpload({ onSuccess }: Props) {
     setLoading(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
       setError('Not logged in.')
       setLoading(false)
       return
     }
+    const user = session.user
 
     // Extract text from PDF
     let content: string

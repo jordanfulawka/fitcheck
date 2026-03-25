@@ -30,15 +30,15 @@ export default function AddApplicationForm({ onSuccess }: Props) {
     setLoading(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
       setError('Not logged in.')
       setLoading(false)
       return
     }
 
     const { error: insertError } = await supabase.from('applications').insert({
-      user_id: user.id,
+      user_id: session.user.id,
       company: form.company,
       role: form.role,
       job_description: form.job_description,
