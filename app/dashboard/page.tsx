@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AddApplicationForm from '@/components/AddApplicationForm'
+import ResumeUpload from '@/components/ResumeUpload'
 
 interface Application {
   id: string
@@ -11,6 +12,11 @@ interface Application {
   job_url: string | null
   status: string
   applied_at: string | null
+  created_at: string
+}
+
+interface Resume {
+  file_url: string
   created_at: string
 }
 
@@ -24,26 +30,40 @@ const statusColors: Record<string, string> = {
 export default function DashboardPage() {
   const supabase = createClient()
   const [showForm, setShowForm] = useState(false)
+  const [showResumeUpload, setShowResumeUpload] = useState(false)
   const [applications, setApplications] = useState<Application[]>([])
+  const [resume, setResume] = useState<Resume | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchApplications = useCallback(async () => {
-    const { data } = await supabase
-      .from('applications')
-      .select('id, company, role, job_url, status, applied_at, created_at')
-      .order('created_at', { ascending: false })
+  const fetchData = useCallback(async () => {
+    const [{ data: apps }, { data: resumeData }] = await Promise.all([
+      supabase
+        .from('applications')
+        .select('id, company, role, job_url, status, applied_at, created_at')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('resumes')
+        .select('file_url, created_at')
+        .single()
+    ])
 
-    setApplications(data ?? [])
+    setApplications(apps ?? [])
+    setResume(resumeData)
     setLoading(false)
   }, [supabase])
 
   useEffect(() => {
-    fetchApplications()
-  }, [fetchApplications])
+    fetchData()
+  }, [fetchData])
 
-  function handleSuccess() {
+  function handleApplicationSuccess() {
     setShowForm(false)
-    fetchApplications()
+    fetchData()
+  }
+
+  function handleResumeSuccess() {
+    setShowResumeUpload(false)
+    fetchData()
   }
 
   return (
@@ -51,16 +71,37 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">FitCheck</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + Add Application
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowResumeUpload(true)}
+            className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            {resume ? '↑ Update Resume' : '↑ Upload Resume'}
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            + Add Application
+          </button>
+        </div>
       </header>
 
       {/* Main content */}
       <main className="max-w-5xl mx-auto px-6 py-10">
+        {/* Resume status banner */}
+        {!loading && !resume && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-4 mb-6 text-sm text-yellow-800 flex items-center justify-between">
+            <span>Upload your resume to enable AI analysis on your applications.</span>
+            <button
+              onClick={() => setShowResumeUpload(true)}
+              className="text-yellow-900 font-medium underline underline-offset-2"
+            >
+              Upload now
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <p className="text-gray-400 text-sm text-center">Loading...</p>
         ) : applications.length === 0 ? (
@@ -107,7 +148,7 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Modal */}
+      {/* Add Application Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
@@ -120,7 +161,32 @@ export default function DashboardPage() {
                 ✕
               </button>
             </div>
-            <AddApplicationForm onSuccess={handleSuccess} />
+            <AddApplicationForm onSuccess={handleApplicationSuccess} />
+          </div>
+        </div>
+      )}
+
+      {/* Resume Upload Modal */}
+      {showResumeUpload && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {resume ? 'Update Resume' : 'Upload Resume'}
+              </h2>
+              <button
+                onClick={() => setShowResumeUpload(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {resume && (
+              <p className="text-sm text-gray-500 mb-4">
+                Last uploaded {new Date(resume.created_at).toLocaleDateString()}. Uploading a new file will replace it.
+              </p>
+            )}
+            <ResumeUpload onSuccess={handleResumeSuccess} />
           </div>
         </div>
       )}
