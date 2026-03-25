@@ -67,7 +67,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
             value={form.company}
             onChange={handleChange}
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Acme Corp"
           />
         </div>
@@ -78,7 +78,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
             value={form.role}
             onChange={handleChange}
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Software Engineer"
           />
         </div>
@@ -91,7 +91,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
           value={form.job_url}
           onChange={handleChange}
           type="url"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="https://..."
         />
       </div>
@@ -104,7 +104,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
           onChange={handleChange}
           required
           rows={6}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           placeholder="Paste the full job description here..."
         />
       </div>
@@ -116,7 +116,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
           value={form.notes}
           onChange={handleChange}
           rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           placeholder="Any personal notes about this application..."
         />
       </div>
@@ -128,7 +128,7 @@ export default function AddApplicationForm({ onSuccess }: Props) {
           value={form.applied_at}
           onChange={handleChange}
           type="date"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
