@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AddApplicationForm from '@/components/AddApplicationForm'
 import ResumeUpload from '@/components/ResumeUpload'
+import AnalysisResult from '@/components/AnalysisResult'
 
 interface Application {
   id: string
@@ -20,6 +21,15 @@ interface Resume {
   created_at: string
 }
 
+interface Analysis {
+  match_score: number
+  summary: string
+  strengths: string[]
+  missing_keywords: string[]
+  suggestions: string[]
+  cover_letter_draft: string
+}
+
 const statusColors: Record<string, string> = {
   applied: 'bg-blue-100 text-blue-700',
   interviewing: 'bg-yellow-100 text-yellow-700',
@@ -34,6 +44,9 @@ export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [resume, setResume] = useState<Resume | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [analysisApp, setAnalysisApp] = useState<Application | null>(null)
 
   const fetchData = useCallback(async () => {
     const [{ data: apps }, { data: resumeData }] = await Promise.all([
@@ -56,14 +69,23 @@ export default function DashboardPage() {
     fetchData()
   }, [fetchData])
 
-  function handleApplicationSuccess() {
-    setShowForm(false)
-    fetchData()
-  }
+  async function handleAnalyze(app: Application) {
+    setAnalyzingId(app.id)
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId: app.id }),
+    })
+    const data = await res.json()
+    setAnalyzingId(null)
 
-  function handleResumeSuccess() {
-    setShowResumeUpload(false)
-    fetchData()
+    if (data.error) {
+      alert(data.error)
+      return
+    }
+
+    setAnalysis(data.analysis)
+    setAnalysisApp(app)
   }
 
   return (
@@ -89,7 +111,6 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <main className="max-w-5xl mx-auto px-6 py-10">
-        {/* Resume status banner */}
         {!loading && !resume && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-4 mb-6 text-sm text-yellow-800 flex items-center justify-between">
             <span>Upload your resume to enable AI analysis on your applications.</span>
@@ -115,6 +136,7 @@ export default function DashboardPage() {
                   <th className="px-6 py-3 font-medium">Role</th>
                   <th className="px-6 py-3 font-medium">Status</th>
                   <th className="px-6 py-3 font-medium">Applied</th>
+                  <th className="px-6 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -136,9 +158,16 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400">
-                      {app.applied_at
-                        ? new Date(app.applied_at).toLocaleDateString()
-                        : '—'}
+                      {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleAnalyze(app)}
+                        disabled={analyzingId === app.id || !resume}
+                        className="text-blue-600 text-xs font-medium hover:underline disabled:opacity-40 disabled:no-underline"
+                      >
+                        {analyzingId === app.id ? 'Analyzing...' : 'Analyze'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -154,14 +183,9 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Add Application</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-              >
-                ✕
-              </button>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
-            <AddApplicationForm onSuccess={handleApplicationSuccess} />
+            <AddApplicationForm onSuccess={() => { setShowForm(false); fetchData() }} />
           </div>
         </div>
       )}
@@ -171,22 +195,31 @@ export default function DashboardPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {resume ? 'Update Resume' : 'Upload Resume'}
-              </h2>
-              <button
-                onClick={() => setShowResumeUpload(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-              >
-                ✕
-              </button>
+              <h2 className="text-lg font-semibold text-gray-900">{resume ? 'Update Resume' : 'Upload Resume'}</h2>
+              <button onClick={() => setShowResumeUpload(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
             {resume && (
               <p className="text-sm text-gray-500 mb-4">
                 Last uploaded {new Date(resume.created_at).toLocaleDateString()}. Uploading a new file will replace it.
               </p>
             )}
-            <ResumeUpload onSuccess={handleResumeSuccess} />
+            <ResumeUpload onSuccess={() => { setShowResumeUpload(false); fetchData() }} />
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Modal */}
+      {analysis && analysisApp && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">FitCheck Analysis</h2>
+                <p className="text-sm text-gray-500">{analysisApp.role} at {analysisApp.company}</p>
+              </div>
+              <button onClick={() => { setAnalysis(null); setAnalysisApp(null) }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <AnalysisResult analysis={analysis} />
           </div>
         </div>
       )}
