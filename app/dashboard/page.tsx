@@ -14,7 +14,7 @@ interface Application {
   status: string
   applied_at: string | null
   created_at: string
-  ai_analyses?: { match_score: number } | null
+  ai_analyses?: { match_score: number }[] | null
 }
 
 interface Resume {
@@ -176,10 +176,10 @@ setApplications(apps ?? [])
                       {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-6 py-4">
-                      {app.ai_analyses ? (
+                      {app.ai_analyses && app.ai_analyses.length > 0 ? (
                         <div className="flex items-center gap-3">
                           <span className="text-xs font-semibold text-gray-500">
-                            {app.ai_analyses.match_score}/100
+                            {app.ai_analyses[0].match_score}/100
                           </span>
                           <button
                             onClick={() => handleView(app)}
