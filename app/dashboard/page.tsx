@@ -70,6 +70,11 @@ setApplications(apps ?? [])
     fetchData()
   }, [fetchData])
 
+  async function handleStatusChange(id: string, status: string) {
+    await supabase.from('applications').update({ status }).eq('id', id)
+    setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+  }
+
   async function handleView(app: Application) {
     const { data } = await supabase
       .from('ai_analyses')
@@ -168,18 +173,25 @@ setApplications(apps ?? [])
                     </td>
                     <td className="px-6 py-4 text-gray-600">{app.role}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColors[app.status]}`}>
-                        {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                      </span>
+                      <select
+                        value={app.status}
+                        onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                        className={`text-xs font-medium px-2 py-1 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusColors[app.status]}`}
+                      >
+                        <option value="applied">Applied</option>
+                        <option value="interviewing">Interviewing</option>
+                        <option value="offer">Offer</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 text-gray-400">
                       {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-6 py-4">
-                      {app.ai_analyses && app.ai_analyses.length > 0 ? (
+                      {app.ai_analyses && (Array.isArray(app.ai_analyses) ? app.ai_analyses.length > 0 : true) ? (
                         <div className="flex items-center gap-3">
                           <span className="text-xs font-semibold text-gray-500">
-                            {app.ai_analyses[0].match_score}/100
+                            {Array.isArray(app.ai_analyses) ? app.ai_analyses[0].match_score : (app.ai_analyses as unknown as { match_score: number }).match_score}/100
                           </span>
                           <button
                             onClick={() => handleView(app)}
