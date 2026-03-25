@@ -14,6 +14,7 @@ interface Application {
   status: string
   applied_at: string | null
   created_at: string
+  ai_analyses?: { match_score: number } | null
 }
 
 interface Resume {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
     const [{ data: apps }, { data: resumeData }] = await Promise.all([
       supabase
         .from('applications')
-        .select('id, company, role, job_url, status, applied_at, created_at')
+        .select('id, company, role, job_url, status, applied_at, created_at, ai_analyses(match_score)')
         .order('created_at', { ascending: false }),
       supabase
         .from('resumes')
@@ -60,7 +61,7 @@ export default function DashboardPage() {
         .single()
     ])
 
-    setApplications(apps ?? [])
+setApplications(apps ?? [])
     setResume(resumeData)
     setLoading(false)
   }, [supabase])
@@ -68,6 +69,19 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  async function handleView(app: Application) {
+    const { data } = await supabase
+      .from('ai_analyses')
+      .select('*')
+      .eq('application_id', app.id)
+      .single()
+
+    if (data) {
+      setAnalysis(data)
+      setAnalysisApp(app)
+    }
+  }
 
   async function handleAnalyze(app: Application) {
     setAnalyzingId(app.id)
@@ -86,6 +100,7 @@ export default function DashboardPage() {
 
     setAnalysis(data.analysis)
     setAnalysisApp(app)
+    fetchData()
   }
 
   return (
@@ -161,13 +176,34 @@ export default function DashboardPage() {
                       {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleAnalyze(app)}
-                        disabled={analyzingId === app.id || !resume}
-                        className="text-blue-600 text-xs font-medium hover:underline disabled:opacity-40 disabled:no-underline"
-                      >
-                        {analyzingId === app.id ? 'Analyzing...' : 'Analyze'}
-                      </button>
+                      {app.ai_analyses ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-semibold text-gray-500">
+                            {app.ai_analyses.match_score}/100
+                          </span>
+                          <button
+                            onClick={() => handleView(app)}
+                            className="text-blue-600 text-xs font-medium hover:underline"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleAnalyze(app)}
+                            disabled={analyzingId === app.id || !resume}
+                            className="text-gray-400 text-xs font-medium hover:underline disabled:opacity-40"
+                          >
+                            {analyzingId === app.id ? 'Analyzing...' : 'Re-analyze'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleAnalyze(app)}
+                          disabled={analyzingId === app.id || !resume}
+                          className="text-blue-600 text-xs font-medium hover:underline disabled:opacity-40 disabled:no-underline"
+                        >
+                          {analyzingId === app.id ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
